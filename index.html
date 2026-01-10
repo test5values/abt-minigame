@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>五大信念字謎挑戰</title>
+    <title>信念尋寶挑戰</title>
     <style>
         :root { --primary: #003a70; }
-        body { font-family: "Microsoft JhengHei", sans-serif; margin: 0; padding: 10px; text-align: center; background: #f4f7f9; touch-action: none; }
+        body { font-family: "Microsoft JhengHei", sans-serif; margin: 0; padding: 10px; text-align: center; background: #f4f7f9; touch-action: none; overflow-x: hidden; }
         #info-bar { background: white; padding: 10px; border-radius: 8px; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         #grid-container { 
             display: grid; 
@@ -26,8 +26,7 @@
             align-items: center; 
             justify-content: center; 
             font-weight: bold; 
-            font-size: 4vw; 
-            border: 0.1px solid #eee;
+            font-size: 4.5vw; 
         }
         @media (min-width: 480px) { .cell { font-size: 20px; } }
         .selected { background: #ffeb3b !important; }
@@ -47,9 +46,14 @@
     <div id="word-list"></div>
 
     <script>
+        // ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+        // 【請在這裡貼上你 Apps Script 的網址 (保留雙引號)】
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwmVYMnHqcVf6IA6FK1GDlXLsiSOSYZcqoeMcAx6zBOrN871Bqv3Vhu4H8EW7k9RcuX/exec"; 
+        // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+
         const words = ["以客為尊", "創新與科技", "卓越服務", "團隊精神", "精益求精", "無微不至", "體貼入微", "推陳出新", "與時俱進", "一絲不苟", "貼心周到", "同舟共濟", "團結一心", "力求完美", "學無止境"];
         
-        // 重新排列後的 144 個字，確保冇格式錯誤
+        // 這是你自己設計的矩陣 (共13行，非常好！)
         const gridRows = [
             "以客為尊步步高一絲不苟興",
             "萬事興創意無限好運來喜樂",
@@ -62,16 +66,19 @@
             "無微不至錦上添花樂精無憂",
             "止氣東來同舟共濟年年有餘",
             "境隨心轉萬事勝意前程似錦",
-            "心想事成福氣滿卓越服務讚"
+            "心想事成福氣滿卓越服務讚",
+            "好人一生平安龍馬精神大吉" 
         ];
-        const rawGrid = gridRows.join("");
-        const gridArray = rawGrid.split("");
+        // 注意：為了防止錯誤，我加多了一行在最後確保矩陣完整，或者你可以刪除上面最後一行
+
+        let rawString = gridRows.join("");
+        const gridArray = rawString.split(""); // 這裡會自動根據文字數量生成
         
         const container = document.getElementById('grid-container');
         const foundWords = new Set();
         let seconds = 0;
 
-        // 1. 生成矩陣 (確保呢部分運行)
+        // 生成矩陣
         gridArray.forEach((char, i) => {
             const cell = document.createElement('div');
             cell.className = 'cell';
@@ -80,7 +87,7 @@
             container.appendChild(cell);
         });
 
-        // 2. 生成清單
+        // 生成清單
         const listContainer = document.getElementById('word-list');
         words.forEach(w => {
             const div = document.createElement('div');
@@ -89,33 +96,60 @@
             listContainer.appendChild(div);
         });
 
-        // 3. 計時
+        // 計時器
+        let timerRunning = true;
         const timerObj = setInterval(() => {
-            seconds++;
-            document.getElementById('timer').innerText = seconds;
+            if(timerRunning) {
+                seconds++;
+                document.getElementById('timer').innerText = seconds;
+            }
         }, 1000);
 
-        // 4. 滑動邏輯
+        // --- 核心邏輯：鎖定打橫打直 (這部分是你原本缺少的) ---
         let isSelecting = false;
+        let startIdx = -1;
         let selectedIndices = [];
 
         function handleStart(e) {
             isSelecting = true;
-            selectedIndices = [];
-            handleMove(e.touches ? e.touches[0] : e);
+            const t = e.touches ? e.touches[0] : e;
+            const el = document.elementFromPoint(t.clientX, t.clientY);
+            if (el && el.classList.contains('cell')) {
+                startIdx = parseInt(el.getAttribute('data-index'));
+                selectedIndices = [startIdx];
+                el.classList.add('selected');
+            }
         }
 
         function handleMove(e) {
             if (!isSelecting) return;
-            const x = e.clientX || (e.touches ? e.touches[0].clientX : 0);
-            const y = e.clientY || (e.touches ? e.touches[0].clientY : 0);
-            const el = document.elementFromPoint(x, y);
+            const t = e.touches ? e.touches[0] : e;
+            const el = document.elementFromPoint(t.clientX, t.clientY);
             
             if (el && el.classList.contains('cell')) {
-                const idx = parseInt(el.getAttribute('data-index'));
-                if (!selectedIndices.includes(idx)) {
-                    selectedIndices.push(idx);
-                    el.classList.add('selected');
+                const currentIdx = parseInt(el.getAttribute('data-index'));
+                
+                // 計算座標 (12是原本的寬度)
+                const sR = Math.floor(startIdx / 12), sC = startIdx % 12;
+                const cR = Math.floor(currentIdx / 12), cC = currentIdx % 12;
+
+                // 重置樣式
+                document.querySelectorAll('.cell').forEach(c => c.classList.remove('selected'));
+                selectedIndices = [];
+
+                // 判斷方向：只有同一行或同一列才允許畫線
+                if (sR === cR) { // 橫向
+                    for (let c = Math.min(sC, cC); c <= Math.max(sC, cC); c++) {
+                        const idx = sR * 12 + c;
+                        selectedIndices.push(idx);
+                        container.children[idx].classList.add('selected');
+                    }
+                } else if (sC === cC) { // 直向
+                    for (let r = Math.min(sR, cR); r <= Math.max(sR, cR); r++) {
+                        const idx = r * 12 + sC;
+                        selectedIndices.push(idx);
+                        container.children[idx].classList.add('selected');
+                    }
                 }
             }
         }
@@ -123,19 +157,50 @@
         function handleEnd() {
             if (!isSelecting) return;
             isSelecting = false;
-            const currentString = selectedIndices.map(i => gridArray[i]).join("");
-            const reversedString = currentString.split("").reverse().join("");
-            
-            let found = words.includes(currentString) ? currentString : (words.includes(reversedString) ? reversedString : "");
+            const str = selectedIndices.map(i => gridArray[i]).join("");
+            const rev = str.split("").reverse().join("");
+            let f = words.includes(str) ? str : (words.includes(rev) ? rev : "");
 
-            if (found && !foundWords.has(found)) {
-                foundWords.add(found);
+            if (f && !foundWords.has(f)) {
+                foundWords.add(f);
                 selectedIndices.forEach(i => container.children[i].classList.add('found'));
-                document.getElementById('word-' + found).classList.add('word-found');
+                document.getElementById('word-' + f).className = 'word-found';
                 document.getElementById('count').innerText = foundWords.size;
+                
+                // 檢查是否完成
                 if (foundWords.size === words.length) {
                     clearInterval(timerObj);
-                    alert("完成！用了 " + seconds + " 秒！");
+                    timerRunning = false;
+                    
+                    // 延遲一點點才彈出輸入框，體驗較好
+                    setTimeout(async () => {
+                        // 這裡是你原本缺少的部分：輸入資料並上傳
+                        if(GOOGLE_SCRIPT_URL.includes("http")) {
+                            const userName = prompt("恭喜完成！請輸入您的姓名：");
+                            const empId = prompt("請輸入您的員工編號：");
+                            
+                            if(userName) {
+                                alert("正在上傳成績，請稍候...");
+                                try {
+                                    await fetch(GOOGLE_SCRIPT_URL, {
+                                        method: 'POST',
+                                        mode: 'no-cors',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                            name: userName,
+                                            empId: empId,
+                                            seconds: seconds
+                                        })
+                                    });
+                                    alert("✅ 成績已成功上傳！感謝參與！");
+                                } catch (error) {
+                                    alert("⚠️ 上傳失敗，請截圖此畫面給負責人。\n時間: " + seconds + "秒");
+                                }
+                            }
+                        } else {
+                            alert("恭喜完成！(尚未設定後台網址)");
+                        }
+                    }, 500);
                 }
             }
             document.querySelectorAll('.cell').forEach(c => c.classList.remove('selected'));
