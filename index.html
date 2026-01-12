@@ -71,7 +71,7 @@
             background: white;
             padding: 15px;
             border-radius: 8px;
-            margin: 15px auto; /* 調整間距 */
+            margin: 15px auto;
             width: 90vw;
             max-width: 480px;
             text-align: left;
@@ -120,11 +120,11 @@
     </div>
 
     <div id="word-list"></div>
+
     <script>
-        // ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
-        // 【請確認這裡已填入你的 Apps Script 網址】
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwmVYMnHqcVf6IA6FK1GDlXLsiSOSYZcqoeMcAx6zBOrN871Bqv3Vhu4H8EW7k9RcuX/exec"; 
-        // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+        // ▼▼▼ 已填好你的網址 ▼▼▼
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx0FpNFxYRXQXys69CcqZeLIKf_-Xkkup1VnxsF8QO-4VxgptolyBr_RXlijFJvXlm2/exec"; 
+        // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
         const words = ["以客為尊", "創新與科技", "卓越服務", "團隊精神", "精益求精", "無微不至", "體貼入微", "推陳出新", "與時俱進", "一絲不苟", "貼心周到", "同舟共濟", "團結一心", "力求完美", "學無止境"];
         
@@ -250,7 +250,9 @@
             
             timerRunning = false;
             
-            let confirmMsg = `你目前找到了 ${foundWords.size} / 15 個答案。\n所用時間：${seconds} 秒。\n確定要現在提交嗎？`;
+            // ▼▼▼ 改用傳統字串組合，保證不會出錯 ▼▼▼
+            let confirmMsg = "你目前找到了 " + foundWords.size + " / 15 個答案。\n所用時間：" + seconds + " 秒。\n確定要現在提交嗎？";
+            
             if(!confirm(confirmMsg)) {
                 timerRunning = true;
                 return;
@@ -262,6 +264,9 @@
                 const userName = prompt("請輸入您的姓名：");
                 const empId = prompt("請輸入您的員工編號：");
                 
+                // 收集已找到的字
+                const foundListString = Array.from(foundWords).join("、");
+
                 if(userName) {
                     document.getElementById('submit-btn').innerText = "正在上傳...";
                     document.getElementById('submit-btn').disabled = true;
@@ -275,7 +280,8 @@
                                 name: userName,
                                 empId: empId,
                                 score: foundWords.size + " / 15",
-                                seconds: seconds
+                                seconds: seconds,
+                                foundList: foundListString
                             })
                         });
                         alert("✅ 成績已成功上傳！感謝參與！");
